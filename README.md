@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://github.com/pi-etro/func-invaders">
-    <img src="https://raw.githubusercontent.com/pi-etro/func-invaders/main/img/func_invaders.svg" width="420">
+    <img src="https://raw.githubusercontent.com/pi-etro/func-invaders/main/img/func_invaders.svg" height="180">
   </a>
 </p>
 <p align="center">
