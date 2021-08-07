@@ -7,7 +7,8 @@ data GameState = Start | Playing | Victory | Defeat
     deriving Eq
 
 -- every game component (player, aliens, bullets, etc)
-data Component a = Component { px :: Float
+data Component a = Component { sprite :: Picture
+                             , px :: Float
                              , py :: Float
                              , vx :: Float
                              , vy :: Float
@@ -53,19 +54,20 @@ photographWorld game
             let coordy = py component
             let width  = w component
             let height  = h component
-            Color clr $ Translate coordx coordy $ rectangleSolid width height
+            --Color clr $ Translate coordx coordy $ rectangleSolid width height
+            Translate coordx coordy $ sprite component
 
 -- initialize world
-initiateGame :: GameData a
-initiateGame = GameData Playing canon 0 False False False
+initiateGame :: Picture -> GameData a
+initiateGame cannon = GameData Playing c 0 False False False
     where
-        canon = Component 0 (-218) 0 0 60 20
+        c = Component cannon 0 (-218) 0 0 60 20
 
 -- update all components
-updateAll :: Float -> GameData a -> GameData a
-updateAll t game
+updateAll :: Picture -> Float -> GameData a -> GameData a
+updateAll cannon t game
     | state game == Playing = updateComponents t game
-    | otherwise             = if shoot game then initiateGame else game
+    | otherwise             = if shoot game then initiateGame cannon else game
     where updateComponents t' game' = updatePlayer t' game'
 
 -- update player position and fire
