@@ -1,6 +1,7 @@
 module World where
 
 import Graphics.Gloss
+import Control.Parallel.Strategies
 
 -- parameters and constants
 cannonV, bulletV, alienV, reloadTime :: Float
@@ -56,8 +57,8 @@ photographWorld world
         you_win      = Color green $ Translate (-164) 50 $ Scale 0.2 0.2 $ Text "EARTH IS SAFE AGAIN !"
         -- game components
         c        = pose $ cannon world
-        cbullets = map pose $ cannonbullets world
-        a        = map pose $ aliens world
+        cbullets = parMap rpar pose $ cannonbullets world
+        a        = parMap rpar pose $ aliens world
         -- pose component for the photo
         pose component = do
             let coordx = px component
@@ -93,6 +94,8 @@ fireCannon sprites t world
         x = px $ cannon world
         y = 12 + py (cannon world)
 
+--shootLaser :: [Picture] -> Float -> World a -> World a
+
 -- update all components
 update :: [Picture] -> Float -> World a -> World a
 update sprites t world
@@ -113,7 +116,7 @@ updateCannon sprites t world = fireCannon sprites t world'
         world' = world { cannon = (cannon world) { px = max (-375+margin) $ min (375-margin) $ movement + px (cannon world) } }
 
 updateBullets :: Float -> World a -> World a
-updateBullets t world = world {cannonbullets = filter (\x -> py x < 310) $ map (updatePosition t) $ cannonbullets world}
+updateBullets t world = world {cannonbullets = filter (\x -> py x < 310) $ parMap rpar (updatePosition t) $ cannonbullets world}
 
 updateTroop :: Float -> World a -> World a
 updateTroop t world
@@ -122,12 +125,12 @@ updateTroop t world
     where
         troop = aliens world
         dir = vx (head troop)
-        posx = map px troop
+        posx = parMap rpar px troop
         xmax = maximum posx
         xmin = minimum posx
-        moved = map (updatePosition t) troop
+        moved = parMap rpar (updatePosition t) troop
         velocities
-            | dir > 0 && xmax >= 357  = map (\x -> x { py = py x-12, vx = -(vx x)}) moved
-            | dir < 0 && xmin <= -357 = map (\x -> x { py = py x-12, vx = -(vx x)}) moved
+            | dir > 0 && xmax >= 357  = parMap rpar (\x -> x { py = py x-12, vx = -(vx x)}) moved
+            | dir < 0 && xmin <= -357 = parMap rpar (\x -> x { py = py x-12, vx = -(vx x)}) moved
             | otherwise               = moved
 

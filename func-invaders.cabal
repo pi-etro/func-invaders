@@ -20,4 +20,5 @@ executable func-invaders
   other-modules:       Aliens, Cannon, Colision, Controls, Update, World
   build-depends:       base >= 4.7 && < 5
                      , gloss
+                     , parallel
   ghc-options:         -O2 -Wall
