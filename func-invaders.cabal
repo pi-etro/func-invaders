@@ -1,14 +1,13 @@
 name:                func-invaders
-version:             0.1.0.0
+version:             1.0
 -- synopsis:
 -- description:
 homepage:            https://github.com/githubuser/func-invaders#readme
-license:             BSD3
+license:             GPL-3
 license-file:        LICENSE
-author:              Author name here
-maintainer:          example@example.com
-copyright:           2021 Author name here
-category:            Web
+author:              Pietro Di Consolo Gregorio
+maintainer:          pietro.dcg@gmail.com
+category:            Games
 build-type:          Simple
 cabal-version:       >=1.10
 extra-source-files:  README.md
@@ -21,4 +20,5 @@ executable func-invaders
   build-depends:       base >= 4.7 && < 5
                      , gloss
                      , parallel
-  ghc-options:         -O2 -Wall
+                     , random
+  ghc-options:         -O2 -Wall -threaded -rtsopts -with-rtsopts=-N

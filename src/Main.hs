@@ -3,6 +3,7 @@ module Main where
 import Graphics.Gloss
 import Graphics.Gloss.Interface.Environment
 --import Graphics.Gloss.Interface.IO.Interact
+import System.Random
 
 import Controls
 import World
@@ -29,12 +30,14 @@ main = do
     ufo       <- loadBMP "resources/ufo.bmp"
     bunker    <- loadBMP "resources/bunker.bmp"
     let sprites = [cannonBMP, bulletBMP, octopus, mrcrabs, squidward, ray, ufo, bunker]
+    -- random generator
+    g <- newStdGen
     -- game initial state
     play
         disp
         black
         fps
-        (createWorld sprites)
+        (createWorld sprites g)
         photographWorld
         controlEvent
-        (update sprites)
+        (update sprites g)
