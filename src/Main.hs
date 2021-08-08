@@ -22,13 +22,13 @@ main = do
     -- sprites
     cannonBMP    <- loadBMP "resources/cannon.bmp"
     bulletBMP    <- loadBMP "resources/bullet.bmp"
-    mrcrabs   <- loadBMP "resources/crab.bmp"
     octopus   <- loadBMP "resources/octopus.bmp"
+    mrcrabs   <- loadBMP "resources/crab.bmp"
     squidward <- loadBMP "resources/squid.bmp"
     ray       <- loadBMP "resources/ray.bmp"
     ufo       <- loadBMP "resources/ufo.bmp"
     bunker    <- loadBMP "resources/bunker.bmp"
-    let sprites = [cannonBMP, bulletBMP, mrcrabs, octopus, squidward, ray, ufo, bunker]
+    let sprites = [cannonBMP, bulletBMP, octopus, mrcrabs, squidward, ray, ufo, bunker]
     -- game initial state
     play
         disp
