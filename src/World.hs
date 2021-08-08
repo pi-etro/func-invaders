@@ -5,14 +5,16 @@ import Control.Parallel.Strategies
 import System.Random
 
 -- parameters and constants
-cannonV, bulletV, rayV, alienV, reloadTime, marchTime, rayTime :: Float
+cannonV, bulletV, rayV, alienV, ufoV, reloadTime, marchTime, rayTime, ufoTime :: Float
 cannonV    = 200
 bulletV    = 600
 rayV       = -250
 alienV     = 100
+ufoV       = 100
 reloadTime = 0.5
 marchTime  = 0.5
 rayTime    = 1
+ufoTime    = 25
 
 nRays :: Int
 nRays      = 4
@@ -35,9 +37,9 @@ data Component a = Component { sprite :: Picture
 -- all the info of the game
 data World a = World { state         :: WorldState
                      , rndGen        :: StdGen
-                     --, ufo          :: [Component a]
+                     , ufo           :: Component a
                      , aliens        :: [Component a]
-                     , alienrays    :: [Component a]
+                     , alienrays     :: [Component a]
                      --, bunkers       :: [Component a]
                      , cannon        :: Component a
                      , cannonbullets :: [Component a]
@@ -47,6 +49,7 @@ data World a = World { state         :: WorldState
                      , shoot         :: Bool
                      , reload        :: Float
                      , loadray       :: Float
+                     , parked        :: Float
                      }
 
 -- convert the world a picture
@@ -55,7 +58,7 @@ photographWorld world
     | state world == Start   = pictures [welcome_text, start_text, footer, score_text]
     | state world == Defeat  = pictures [game_over, restart_text, footer, score_text]
     | state world == Victory = pictures [you_win, restart_text, footer, score_text]
-    | otherwise             = pictures $ [c, footer, score_text] ++ cbullets ++ a ++ arays
+    | otherwise             = pictures $ [c, ovni, footer, score_text] ++ cbullets ++ a ++ arays
     where
         -- screen elements and texts
         footer       = Color green $ Translate 0 (-262) $ rectangleSolid 750 3
@@ -70,6 +73,7 @@ photographWorld world
         cbullets = parMap rpar pose $ cannonbullets world
         a        = parMap rpar pose $ aliens world
         arays    = parMap rpar pose $ alienrays world
+        ovni     = pose $ ufo world
         -- pose component for the photo
         pose component = do
             let coordx = px component
@@ -84,6 +88,7 @@ createWorld sprites gen =
     World
         Playing
         gen
+        (Component Blank (-424) 272 0 0 48 21 0) -- ufo
         troop -- aliens
         [] -- alien bullets
         (Component (head sprites) 0 (-233) 0 0 45 24 0)  -- cannon
@@ -94,6 +99,7 @@ createWorld sprites gen =
         False
         1
         1
+        0
     where
         troop = [Component (sprites!!4) (x*51.4) 227 alienV 0 24 24 0 | x <- [-5..5]] ++
                 [Component (sprites!!3) (x*51.4) (227 - y*52.75) alienV 0 33 24 0 | x <- [-5..5], y <- [1..2]] ++
@@ -116,7 +122,7 @@ shootLaser sprites t world
         rndTuple :: Int -> StdGen -> (Int, StdGen)
         rndTuple m g = randomR (0, m) g
         rndElement g l = l !! fst (rndTuple (length l - 1) g)
-        rshooter = rndElement (rndGen world)  $ aliens world 
+        rshooter = rndElement (rndGen world)  $ aliens world
         x = px rshooter
         y = py rshooter
         ray = Component (sprites!!5) x y 0 rayV 9 21 0
@@ -127,7 +133,8 @@ update sprites gen t world
     | state world == Playing = updateComponents
     | otherwise              = if shoot world then createWorld sprites gen else world
     where
-        updateComponents = updateCannon sprites t
+        updateComponents = updateUfo sprites t
+                         $ updateCannon sprites t
                          $ updateTroop sprites t
                          $ updateRays t
                          $ updateBullets t world
@@ -168,3 +175,15 @@ updateTroop sprites t world
 updateRays :: Float -> World a -> World a
 updateRays t world = world {alienrays = filter (\x -> py x > -256) $ parMap rpar (updatePosition t) $ alienrays world}
 
+updateUfo :: [Picture] -> Float -> World a -> World a
+updateUfo sprites t world
+    | vx (ufo world) == 0 && parked world > ufoTime =
+        if px (ufo world) < 0 then fly 1
+        else fly (-1)
+    | vx (ufo world) > 0 && px (ufo world) >= 424 = park
+    | vx (ufo world) < 0 && px (ufo world) <= -424 = park
+    | vx (ufo world) == 0 = world { parked = t + parked world }
+    | otherwise = world { ufo = (ufo world) { px = px (ufo world) + t* vx (ufo world) } }
+    where
+        park = world { ufo = (ufo world) { sprite = Blank, vx = 0 }, parked = 0 }
+        fly n = world { ufo = (ufo world) { sprite = sprites!!6, vx = n*ufoV } }

@@ -27,9 +27,9 @@ main = do
     mrcrabs   <- loadBMP "resources/crab.bmp"
     squidward <- loadBMP "resources/squid.bmp"
     ray       <- loadBMP "resources/ray.bmp"
-    ufo       <- loadBMP "resources/ufo.bmp"
+    spaceship <- loadBMP "resources/ufo.bmp"
     bunker    <- loadBMP "resources/bunker.bmp"
-    let sprites = [cannonBMP, bulletBMP, octopus, mrcrabs, squidward, ray, ufo, bunker]
+    let sprites = [cannonBMP, bulletBMP, octopus, mrcrabs, squidward, ray, spaceship, bunker]
     -- random generator
     g <- newStdGen
     -- game initial state
