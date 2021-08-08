@@ -37,7 +37,7 @@ main = do
         disp
         black
         fps
-        (createWorld sprites g 0 Start)
+        (createWorld sprites g 0 3 Start)
         photographWorld
         controlEvent
         (update sprites g)

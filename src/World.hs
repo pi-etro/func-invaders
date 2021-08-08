@@ -46,6 +46,7 @@ data World a = World { state         :: WorldState
                      , cannon        :: Component a
                      , cannonbullets :: [Component a]
                      , score         :: Int
+                     , lives         :: Int
                      , goLeft        :: Bool
                      , goRight       :: Bool
                      , shoot         :: Bool
@@ -60,20 +61,21 @@ photographWorld world
     | state world == Start   = pictures $ info ++ [welcome_text, start_text]
     | state world == Defeat  = pictures $ info ++ [game_over, restart_text]
     | state world == Victory = pictures $ info ++ [you_win, resume_text]
-    | otherwise             = pictures game
+    | otherwise              = pictures $ info ++ game
     where
         -- screen elements and texts
         footer       = Color green $ Translate 0 (-262) $ rectangleSolid 750 3
         score_text   = Color white $ Translate (-350) (-290) $ Scale 0.16 0.16 $ Text $ "SCORE: " ++ show (score world)
+        lives_text   = Color white $ Translate 265 (-290) $ Scale 0.16 0.16 $ Text $ "LIVES: " ++ show (lives world)
         welcome_text = Color green $ Translate (-105) 50 $ Scale 0.2 0.2 $ Text "FUNC INVADERS"
         start_text   = Color white $ Translate (-168) (-50) $ Scale 0.2 0.2 $ Text "PRESS SPACE TO START"
         restart_text = Color white $ Translate (-184) (-50) $ Scale 0.2 0.2 $ Text "PRESS SPACE TO RESTART"
         resume_text = Color white $ Translate (-180) (-50) $ Scale 0.2 0.2 $ Text "PRESS SPACE TO RESUME"
         game_over    = Color green $ Translate (-80) 50 $ Scale 0.2 0.2 $ Text "GAME OVER"
         you_win      = Color green $ Translate (-164) 50 $ Scale 0.2 0.2 $ Text "EARTH IS SAFE AGAIN !"
-        info = [footer, score_text]
+        info = [footer, score_text, lives_text]
         -- game components
-        game = cbullets ++ arays ++ [c, ovni, footer, score_text] ++ a ++ vaults
+        game = cbullets ++ arays ++ [c, ovni] ++ a ++ vaults
         c        = pose $ cannon world
         cbullets = parMap rpar pose $ cannonbullets world
         a        = parMap rpar pose $ aliens world
@@ -89,8 +91,8 @@ photographWorld world
             Translate coordx coordy $ sprite component
 
 -- initialize world
-createWorld :: [Picture] -> StdGen -> Int -> WorldState -> World a
-createWorld sprites gen s stt =
+createWorld :: [Picture] -> StdGen -> Int -> Int -> WorldState -> World a
+createWorld sprites gen s l stt =
     World
         stt
         gen
@@ -101,6 +103,7 @@ createWorld sprites gen s stt =
         (Component (head sprites) 0 (-233) 0 0 45 24 0 False 0)  -- cannon
         [] -- cannon bullets
         s
+        l
         False
         False
         False
@@ -140,8 +143,8 @@ update :: [Picture] -> StdGen -> Float -> World a -> World a
 update sprites gen t world
     | state world == Playing = updateComponents
     | state world == Start   = if shoot world then world { state = Playing } else world
-    | state world == Victory = if shoot world then createWorld sprites gen (score world) Playing else world
-    | otherwise              = if shoot world then createWorld sprites gen 0 Start else world
+    | state world == Victory = if shoot world then createWorld sprites gen (score world) (lives world) Playing else world
+    | otherwise              = if shoot world then createWorld sprites gen 0 3 Start else world
     where
         updateComponents = updateUfo sprites t
                          $ updateCannon sprites t
@@ -169,7 +172,8 @@ updateBullets t world = world {cannonbullets = filter (\x -> py x < 291) $ parMa
 
 updateTroop :: [Picture] -> Float -> World a -> World a
 updateTroop sprites t world
-    | null (aliens world) || ymin < -233 = world {state = Defeat}
+    | null (aliens world) = world
+    | ymin < -233 = world {state = Defeat}
     | otherwise = shootLaser sprites t world'
     where
         troop = aliens world
@@ -228,26 +232,34 @@ checkCollisions (a:as) bs = ( a':as', bs'')
         (as', bs'') = checkCollisions as bs'
 
 updateCollisions :: World a -> World a
-updateCollisions world= world { ufo = head u, aliens = a', alienrays = r'', cannon = head c', cannonbullets = b''', bunkers = bk'}
+updateCollisions world= world { ufo = head ufo'
+                              , aliens = aliens'
+                              , alienrays = rays''
+                              , cannon = head cannon''
+                              , cannonbullets = bullets'''}
+                              --, bunkers = bunkers''}
     where
-        (b, a) = checkCollisions (cannonbullets world) (aliens world)
-        (b', u) = checkCollisions b [ufo world]
-        (r, c) = checkCollisions (alienrays world) [cannon world]
-        (a', c') = checkCollisions a c
-        (b'', r') = checkCollisions b' r
-        (b''', bk) = checkCollisions b'' (bunkers world)
-        (r'', bk') = checkCollisions r' bk
+        (_, cannon')       = checkCollisions (aliens world) [cannon world]  -- aliens touched cannon
+        (rays, cannon'')   = checkCollisions (alienrays world) cannon'  -- rays touched cannon
+        (bullets, aliens') = checkCollisions (cannonbullets world) (aliens world) -- bullets touched aliens
+        (bullets', ufo')   = checkCollisions bullets [ufo world] -- bullets touched ufo
+        (bullets'', rays') = checkCollisions bullets' rays -- bullets touched rays possivel erro
+        (bullets''', _)    = checkCollisions bullets'' (bunkers world) -- bullets touched bunkers
+        (rays'', _)        = checkCollisions rays' (bunkers world) -- rays touched bunkers
+
 
 updateDestroy :: World a -> World a
-updateDestroy world= world {state = stt, ufo = u, aliens = aliens', alienrays = clear (alienrays world), cannonbullets = clear (cannonbullets world), bunkers = bunkers', score = score world + alienscore + ufoscore}
+updateDestroy world= world {state = stt, ufo = u, aliens = aliens', alienrays = clear (alienrays world), cannonbullets = clear (cannonbullets world), bunkers = bunkers', cannon = cannon', score = score world + alienscore + ufoscore, lives = lives'}
     where
+        clear l = filter (not . destroy) l
         alienscore = if stt == Defeat then 0 else sum $ parMap rpar (\x -> if destroy x then points x else 0) (aliens world)
         ufoscore = if destroy $ ufo world then points $ ufo world else 0
-        clear l = filter (not . destroy) l
+        u = if destroy $ ufo world then (ufo world) { sprite = Blank, destroy = False } else ufo world
         aliens' = clear (aliens world)
         bunkers' = parMap rpar (\x -> if destroy x then x {destroy = False} else x) (bunkers world)
-        u = if destroy $ ufo world then (ufo world) { sprite = Blank, destroy = False } else ufo world
+        lives' = if destroy $ cannon world then lives world-1 else lives world
+        cannon' = if destroy (cannon world) && lives' == 0 then cannon world else (cannon world) {destroy = False}
         stt
-            | destroy $ cannon world = Defeat
+            | lives' <= 0 = Defeat
             | null aliens' = Victory
             | otherwise = Playing
