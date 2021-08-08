@@ -40,7 +40,7 @@ data World a = World { state         :: WorldState
                      , ufo           :: Component a
                      , aliens        :: [Component a]
                      , alienrays     :: [Component a]
-                     --, bunkers       :: [Component a]
+                     , bunkers       :: [Component a]
                      , cannon        :: Component a
                      , cannonbullets :: [Component a]
                      , score         :: Int
@@ -58,7 +58,7 @@ photographWorld world
     | state world == Start   = pictures [welcome_text, start_text, footer, score_text]
     | state world == Defeat  = pictures [game_over, restart_text, footer, score_text]
     | state world == Victory = pictures [you_win, restart_text, footer, score_text]
-    | otherwise             = pictures $ [c, ovni, footer, score_text] ++ cbullets ++ a ++ arays
+    | otherwise             = pictures $ cbullets ++ arays ++ [c, ovni, footer, score_text] ++ a ++ vaults
     where
         -- screen elements and texts
         footer       = Color green $ Translate 0 (-262) $ rectangleSolid 750 3
@@ -74,6 +74,7 @@ photographWorld world
         a        = parMap rpar pose $ aliens world
         arays    = parMap rpar pose $ alienrays world
         ovni     = pose $ ufo world
+        vaults   = parMap rpar pose $ bunkers world
         -- pose component for the photo
         pose component = do
             let coordx = px component
@@ -90,7 +91,8 @@ createWorld sprites gen =
         gen
         (Component Blank (-424) 272 0 0 48 21 0) -- ufo
         troop -- aliens
-        [] -- alien bullets
+        [] -- alien rays
+        vaults
         (Component (head sprites) 0 (-233) 0 0 45 24 0)  -- cannon
         [] -- cannon bullets
         0
@@ -104,6 +106,7 @@ createWorld sprites gen =
         troop = [Component (sprites!!4) (x*51.4) 227 alienV 0 24 24 0 | x <- [-5..5]] ++
                 [Component (sprites!!3) (x*51.4) (227 - y*52.75) alienV 0 33 24 0 | x <- [-5..5], y <- [1..2]] ++
                 [Component (sprites!!2) (x*51.4) (227 - y*52.75) alienV 0 36 24 0 | x <- [-5..5], y <- [3..4]]
+        vaults = [Component (sprites!!7) (x*69) (-169) 0 0 69 48 0 | x <- [-3, -1, 1, 3]]
 
 fireCannon :: [Picture] -> Float -> World a -> World a
 fireCannon sprites t world
