@@ -84,10 +84,10 @@ photographWorld world
             Translate coordx coordy $ sprite component
 
 -- initialize world
-createWorld :: [Picture] -> StdGen -> World a
-createWorld sprites gen =
+createWorld :: [Picture] -> StdGen -> Int -> WorldState -> World a
+createWorld sprites gen s stt =
     World
-        Playing
+        stt
         gen
         (Component Blank (-424) 272 0 0 48 21 0) -- ufo
         troop -- aliens
@@ -95,7 +95,7 @@ createWorld sprites gen =
         vaults
         (Component (head sprites) 0 (-233) 0 0 45 24 0)  -- cannon
         [] -- cannon bullets
-        0
+        s
         False
         False
         False
@@ -134,7 +134,9 @@ shootLaser sprites t world
 update :: [Picture] -> StdGen -> Float -> World a -> World a
 update sprites gen t world
     | state world == Playing = updateComponents
-    | otherwise              = if shoot world then createWorld sprites gen else world
+    | state world == Start   = if shoot world then world { state = Playing } else world
+    | state world == Victory = if shoot world then createWorld sprites gen (score world) Playing else world
+    | otherwise              = if shoot world then createWorld sprites gen 0 Start else world
     where
         updateComponents = updateUfo sprites t
                          $ updateCannon sprites t
