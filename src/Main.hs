@@ -21,15 +21,34 @@ main = do
     let (wCenter, hCenter) = ((wScreen-windowWidth) `div` 2 , (hScreen-windowHeight) `div` 2)
     let disp = InWindow "FUNC INVADERS" (windowWidth, windowHeight) (wCenter,hCenter)
     -- sprites
-    cannonBMP    <- loadBMP "resources/cannon.bmp"
-    bulletBMP    <- loadBMP "resources/bullet.bmp"
-    octopus   <- loadBMP "resources/octopus.bmp"
-    mrcrabs   <- loadBMP "resources/crab.bmp"
-    squidward <- loadBMP "resources/squid.bmp"
-    ray       <- loadBMP "resources/ray.bmp"
-    spaceship <- loadBMP "resources/ufo.bmp"
-    bunker    <- loadBMP "resources/bunker.bmp"
-    let sprites = [cannonBMP, bulletBMP, octopus, mrcrabs, squidward, ray, spaceship, bunker]
+    cannonBMP      <- loadBMP "resources/cannon.bmp"
+    bulletBMP      <- loadBMP "resources/bullet.bmp"
+    octopus        <- loadBMP "resources/octopus.bmp"
+    octopus_alt    <- loadBMP "resources/octopus_alt.bmp"
+    crab           <- loadBMP "resources/crab.bmp"
+    crab_alt       <- loadBMP "resources/crab_alt.bmp"
+    squid          <- loadBMP "resources/squid.bmp"
+    squid_alt      <- loadBMP "resources/squid_alt.bmp"
+    ray            <- loadBMP "resources/ray.bmp"
+    spaceship      <- loadBMP "resources/ufo.bmp"
+    explosion      <- loadBMP "resources/alien_explosion.bmp"
+    ship_explosion <- loadBMP "resources/ufo_explosion.bmp"
+    bunker         <- loadBMP "resources/bunker.bmp"
+    let sprites = [ 
+                    cannonBMP
+                  , bulletBMP
+                  , octopus
+                  , crab
+                  , squid
+                  , ray
+                  , spaceship
+                  , bunker
+                  , crab_alt
+                  , octopus_alt
+                  , squid_alt
+                  , explosion
+                  , ship_explosion
+                  ]
     -- random generator
     g <- newStdGen
     -- game initial state
