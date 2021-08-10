@@ -31,16 +31,17 @@ data WorldState = Start | Playing | Victory | Defeat
 
 -- game component (player, items, npcs)
 data Component a = Component {
-                               sprite  :: Picture -- component sprite
-                             , px      :: Float   -- x-axis position
-                             , py      :: Float   -- y-axis position
-                             , vx      :: Float   -- x-axis velocity
-                             , vy      :: Float   -- y-axis velocity
-                             , w       :: Float   -- width
-                             , h       :: Float   -- height
-                             , clock   :: Float   -- timer used on invaders troops
-                             , destroy :: Bool    -- destroy flag
-                             , points  :: Int     -- points to add to the score
+                               sprite   :: Picture -- component sprite
+                             , spriteid :: Int     -- sprite index
+                             , px       :: Float   -- x-axis position
+                             , py       :: Float   -- y-axis position
+                             , vx       :: Float   -- x-axis velocity
+                             , vy       :: Float   -- y-axis velocity
+                             , w        :: Float   -- width
+                             , h        :: Float   -- height
+                             , clock    :: Float   -- timer used on invaders troops
+                             , destroy  :: Bool    -- destroy flag
+                             , points   :: Int     -- points to add to the score
                              }
 
 -- all the info of the game
@@ -54,6 +55,7 @@ data World a = World {
                      , cannon        :: Component a
                      , cannonbullets :: [Component a] -- list of fired bullets
                      , score         :: Int           -- current score
+                     , hscore        :: Int           -- current high score
                      , lives         :: Int           -- current lives
                      , goLeft        :: Bool          -- flag to turn cannon left
                      , goRight       :: Bool          -- flag to turn cannon right
@@ -72,16 +74,18 @@ photographWorld world
     | otherwise              = pictures $ info ++ game
     where
         -- screen elements and texts
-        info = [footer, score_text, lives_text]
+        info = [footer, score_text, hscore_text] ++ liv
         footer       = Color green $ Translate 0 (-262) $ rectangleSolid 750 3
+        hscore_text   = Color white $ Translate (-105) (-290) $ Scale 0.16 0.16 $ Text $ "HI-SCORE: " ++ show (hscore world)
         score_text   = Color white $ Translate (-350) (-290) $ Scale 0.16 0.16 $ Text $ "SCORE: " ++ show (score world)
-        lives_text   = Color white $ Translate 265 (-290) $ Scale 0.16 0.16 $ Text $ "LIVES: " ++ show (lives world)
         welcome_text = Color green $ Translate (-105) 50 $ Scale 0.2 0.2 $ Text "FUNC INVADERS"
         start_text   = Color white $ Translate (-168) (-50) $ Scale 0.2 0.2 $ Text "PRESS SPACE TO START"
         restart_text = Color white $ Translate (-184) (-50) $ Scale 0.2 0.2 $ Text "PRESS SPACE TO RESTART"
         resume_text  = Color white $ Translate (-180) (-50) $ Scale 0.2 0.2 $ Text "PRESS SPACE TO RESUME"
         game_over    = Color green $ Translate (-80) 50 $ Scale 0.2 0.2 $ Text "GAME OVER"
         you_win      = Color green $ Translate (-164) 50 $ Scale 0.2 0.2 $ Text "EARTH IS SAFE AGAIN !"
+        liv = parMap rpar pose $ [Component c_icon 0 (fromIntegral x *65 + 197) (-282) 0 0 45 24 0 False 0 | x <- [0 .. lives world - 1]]
+        c_icon = sprite $ cannon world
 
         -- game components
         game = cb ++ ar ++ [c, u] ++ a ++ b
@@ -99,33 +103,34 @@ photographWorld world
             Translate coordx coordy $ sprite component
 
 -- initialize world
-createWorld :: [Picture] -> StdGen -> Int -> Int -> WorldState -> World a
-createWorld sprites gen scr liv stt =
+createWorld :: [Picture] -> StdGen -> Int -> Int -> Int -> WorldState -> World a
+createWorld sprites gen scr hscr liv stt =
     World
-        stt                                                      -- world state
-        gen                                                      -- random generator
-        (Component Blank (-424) 272 0 0 48 21 0 False 100)       -- ufo
-        invaders                                                 -- aliens
-        []                                                       -- alien rays
-        vaults                                                   -- bunkers
-        (Component (head sprites) 0 (-233) 0 0 45 24 0 False 0)  -- cannon
-        []                                                       -- cannon bullets
-        scr                                                      -- score
-        liv                                                      -- lives
-        False                                                    -- go left
-        False                                                    -- go right
-        False                                                    -- shoot
-        0                                                        -- disble fire on start
-        0                                                        -- disable rays on start
-        0                                                        -- ufo starts parked
+        stt                                                       -- world state
+        gen                                                       -- random generator
+        (Component Blank 6 (-424) 272 0 0 48 21 0 False 100)      -- ufo
+        invaders                                                  -- aliens
+        []                                                        -- alien rays
+        vaults                                                    -- bunkers
+        (Component (head sprites) 0 0 (-233) 0 0 45 24 0 False 0) -- cannon
+        []                                                        -- cannon bullets
+        scr                                                       -- score
+        hscr                                                      -- high score
+        liv                                                       -- lives
+        False                                                     -- go left
+        False                                                     -- go right
+        False                                                     -- shoot
+        0                                                         -- disble fire on start
+        0                                                         -- disable rays on start
+        0                                                         -- ufo starts parked
     where
         -- squids, crabs and octopus
         invaders =
-            [Component (sprites!!4) (x*51.4)  227            alienV 0 24 24 0 False 30 | x <- [-5..5]] ++
-            [Component (sprites!!3) (x*51.4) (227 - y*52.75) alienV 0 33 24 0 False 20 | x <- [-5..5], y <- [1..2]] ++
-            [Component (sprites!!2) (x*51.4) (227 - y*52.75) alienV 0 36 24 0 False 10 | x <- [-5..5], y <- [3..4]]
+            [Component (sprites!!4) 4 (x*51.4)  227            alienV 0 24 24 0 False 30 | x <- [-5..5]] ++
+            [Component (sprites!!3) 3 (x*51.4) (227 - y*52.75) alienV 0 33 24 0 False 20 | x <- [-5..5], y <- [1..2]] ++
+            [Component (sprites!!2) 2 (x*51.4) (227 - y*52.75) alienV 0 36 24 0 False 10 | x <- [-5..5], y <- [3..4]]
         -- bunkers
-        vaults = [Component (sprites!!7) (x*69) (-169) 0 0 69 48 0 False 0 | x <- [-3, -1, 1, 3]]
+        vaults = [Component (sprites!!7) 7 (x*69) (-169) 0 0 69 48 0 False 0 | x <- [-3, -1, 1, 3]]
 
 -- spawn a bullet on shoot command if not reloading
 fireCannon :: [Picture] -> Float -> World a -> World a
@@ -133,7 +138,7 @@ fireCannon sprites t world
     | shoot world && reload world > reloadTime = world { cannonbullets = bullet : cannonbullets world, reload = 0 }
     | otherwise                                = world { reload = t + reload world }
     where
-        bullet = Component (sprites!!1) x y 0 bulletV 3 18 0 False 0
+        bullet = Component (sprites!!1) 1 x y 0 bulletV 3 18 0 False 0
         x = px $ cannon world
         y = 12 + py (cannon world)
 
@@ -146,7 +151,7 @@ shootLaser sprites t world
                                                                             , loadray = 0
                                                                             , rndGen = snd $ rndTuple 11 (rndGen world) }
     where
-        ray = Component (sprites!!5) x y 0 rayV 9 21 0 False 0
+        ray = Component (sprites!!5) 5 x y 0 rayV 9 21 0 False 0
         x = px rndshooter
         y = py rndshooter
         rndshooter = rndElement (rndGen world)  $ aliens world -- selects a random alien to fire
@@ -159,25 +164,36 @@ update :: [Picture] -> StdGen -> Float -> World a -> World a
 update sprites gen t world
     | state world == Playing = updateComponents
     | state world == Start   = if shoot world then world { state = Playing } else world
-    | state world == Victory = if shoot world then createWorld sprites gen (score world) (lives world) Playing else world
-    | otherwise              = if shoot world then createWorld sprites gen 0 3 Start else world
+    | state world == Victory = if shoot world then createWorld sprites gen (score world) (hscore world) (lives world) Playing else world
+    | otherwise              = if shoot world then createWorld sprites gen 0 maxscr 3 Start else world
     where
+        maxscr = if score world > hscore world then score world else hscore world
         updateComponents = updateUfo sprites t
                          $ updateCannon sprites t
                          $ updateTroop sprites t
-                         $ updateRays t -- chamar antes de troop !!
-                         $ updateBullets t -- chamar antes de canon !!
+                         $ updateRays t
+                         $ updateBullets t
                          $ updateDestroy
                          $ updateCollisions world
 
--- used to update aliens, bullets and rays positions
-updatePosition :: Float -> Component a -> Component a
-updatePosition t c@(Component _ x y v1 v2 _ _ clk _ _)
-    | clk > marchTime = c { px = x + t*v1
+-- used to update bullets, rays and aliens positions ans sprites
+updatePosition :: [Picture] -> Float -> Component a -> Component a
+updatePosition sprites t c@(Component sprt sid x y v1 v2 _ _ clk _ _)
+    | clk > marchTime = c { sprite = invsprt
+                          , spriteid = invid
+                          , px = x + t*v1
                           , py = y + t*v2
                           , clock = 0 }
     | otherwise       = c { py = y + t*v2
                           , clock = clk + t }
+    where
+        invsprt
+            | null sprites = sprt
+            | otherwise    = sprites!!invid
+        invid
+            | sid >= 2 && sid <= 4  = sid + 6
+            | sid >= 8 && sid <= 10 = sid - 6
+            | otherwise = sid
 
 -- update cannon position and fire bullets
 updateCannon :: [Picture] -> Float -> World a -> World a
@@ -192,7 +208,7 @@ updateCannon sprites t world = fireCannon sprites t world'
 
 -- update bullets positions
 updateBullets :: Float -> World a -> World a
-updateBullets t world = world {cannonbullets = filter (\x -> py x < 291) $ parMap rpar (updatePosition t) $ cannonbullets world}
+updateBullets t world = world {cannonbullets = filter (\x -> py x < 291) $ parMap rpar (updatePosition [] t) $ cannonbullets world}
 
 -- update aliens positions and fire ray beams
 updateTroop :: [Picture] -> Float -> World a -> World a
@@ -207,7 +223,7 @@ updateTroop sprites t world
             | dir < 0 && xmin <= -357 = parMap rpar (\x -> x { py = py x-12, vx = -(vx x)}) moved
             | otherwise               = moved
         dir = vx (head troop)
-        moved = parMap rpar (updatePosition t) troop
+        moved = parMap rpar (updatePosition sprites t) troop
         troop = aliens world
         ymin = minimum $ parMap rpar py troop
         xmax = maximum posx
@@ -216,7 +232,7 @@ updateTroop sprites t world
 
 -- update ray beams positions
 updateRays :: Float -> World a -> World a
-updateRays t world = world {alienrays = filter (\x -> py x > -250) $ parMap rpar (updatePosition t) $ alienrays world}
+updateRays t world = world {alienrays = filter (\x -> py x > -250) $ parMap rpar (updatePosition [] t) $ alienrays world}
 
 -- update UFO position
 updateUfo :: [Picture] -> Float -> World a -> World a
@@ -232,13 +248,13 @@ updateUfo sprites t world
 
 -- check if two components collided
 collided :: Component a -> Component a -> Bool
-collided (Component _ x1 y1 _ _ w1 h1 _ _ _ ) (Component _ x2 y2 _ _ w2 h2 _ _ _) =
+collided (Component _ _ x1 y1 _ _ w1 h1 _ _ _ ) (Component _ _ x2 y2 _ _ w2 h2 _ _ _) =
     (fromleft || fromright) && (fromabove || frombelow)
     where
         fromleft = left2 < left1 && left1 < right2       -- 1 entering 2 from the left
         fromright = left2 < right1 && right1 < right2    -- 1 entering 2 from the right
-        fromabove = bottom2 < bottom1 &&  bottom1 < top2 -- 1 entering 2 from the above
-        frombelow = bottom2 < top1 &&  top1 < top2       -- 1 entering 2 from the below
+        fromabove = bottom2 < bottom1 &&  bottom1 < top2 -- 1 entering 2 from above
+        frombelow = bottom2 < top1 &&  top1 < top2       -- 1 entering 2 from below
         left1   = x1 - w1/2
         right1  = x1 + w1/2
         top1    = y1 + h1/2

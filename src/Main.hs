@@ -45,8 +45,8 @@ main = do
                   , ray
                   , spaceship
                   , bunker
-                  , crab_alt
                   , octopus_alt
+                  , crab_alt
                   , squid_alt
                   , explosion
                   , ship_explosion
@@ -60,7 +60,7 @@ main = do
         disp
         black
         fps
-        (createWorld sprites g 0 3 Start)
+        (createWorld sprites g 0 0 3 Start)
         photographWorld
         controlEvent
         (update sprites g)
