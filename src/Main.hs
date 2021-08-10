@@ -1,14 +1,14 @@
 module Main where
 
-import Graphics.Gloss
-import Graphics.Gloss.Interface.Environment
---import Graphics.Gloss.Interface.IO.Interact
-import System.Random
+-- libraries
+import Graphics.Gloss ( black, play, loadBMP, Display(InWindow) )
+import Graphics.Gloss.Interface.Environment ( getScreenSize )
+import System.Random ( newStdGen )
 
-import Controls
-import World
+import Controls ( controlEvent )
+import World ( createWorld, photographWorld, update, WorldState(Start) )
 
--- parameters and constants
+-- parameters
 windowWidth, windowHeight, fps :: Int
 windowWidth   = 800
 windowHeight  = 600
@@ -20,6 +20,7 @@ main = do
     (wScreen, hScreen) <- getScreenSize
     let (wCenter, hCenter) = ((wScreen-windowWidth) `div` 2 , (hScreen-windowHeight) `div` 2)
     let disp = InWindow "FUNC INVADERS" (windowWidth, windowHeight) (wCenter,hCenter)
+
     -- sprites
     cannonBMP      <- loadBMP "resources/cannon.bmp"
     bulletBMP      <- loadBMP "resources/bullet.bmp"
@@ -34,7 +35,8 @@ main = do
     explosion      <- loadBMP "resources/alien_explosion.bmp"
     ship_explosion <- loadBMP "resources/ufo_explosion.bmp"
     bunker         <- loadBMP "resources/bunker.bmp"
-    let sprites = [ 
+
+    let sprites = [
                     cannonBMP
                   , bulletBMP
                   , octopus
@@ -49,9 +51,11 @@ main = do
                   , explosion
                   , ship_explosion
                   ]
+
     -- random generator
     g <- newStdGen
-    -- game initial state
+
+    -- play game
     play
         disp
         black
