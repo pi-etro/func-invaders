@@ -11,19 +11,27 @@ import Control.Parallel.Strategies ( parMap, rpar )
 import System.Random ( StdGen, Random(randomR) )
 
 -- parameters
-cannonV, bulletV, rayV, alienV, ufoV, reloadTime, marchTime, rayTime, ufoTime :: Float
+cannonV, bulletV, rayV, ufoV, reloadTime, rayTime, ufoTime :: Float
 cannonV    = 200  -- cannon movement speed
 bulletV    = 600  -- cannon bullets speed
 reloadTime = 0.5  -- limit cannon rate of fire
 ufoV       = 100  -- ufo flying speed
 ufoTime    = 25   -- ufo time interval
-alienV     = 100  -- aliens march speed
-marchTime  = 0.5  -- aliens march rhythm
 rayV       = -250 -- aliens ray beam speed
 rayTime    = 1    -- time to spawn a ray beam
 
-nRays :: Int
-nRays      = 4    -- maximum number of simultaneous ray beams
+-- parameters based on current number of aliens
+-- maximum number of simultaneous ray beams (linear from 5 to 3 when only one alien exists)
+nRays :: Int -> Int
+nRays n = (subtract 3 5 `div` 54) * (n-1) + 3
+
+-- aliens march speed (linear from 100 to 150 when only one alien exists)
+alienV :: Int -> Float
+alienV n = (subtract 150 100/54) * fromIntegral (n-1) + 150
+
+-- aliens march rhythm (linear from 0.5 to 0.1 when only one alien exists)
+marchTime :: Int -> Float
+marchTime n = (subtract 0.1 0.5/54) * fromIntegral (n-1) + 0.1
 
 -- world state machine
 data WorldState = Start | Playing | Victory | Defeat
@@ -76,7 +84,7 @@ photographWorld world
         -- screen elements and texts
         info = [footer, score_text, hscore_text] ++ liv
         footer       = Color green $ Translate 0 (-262) $ rectangleSolid 750 3
-        hscore_text   = Color white $ Translate (-105) (-290) $ Scale 0.16 0.16 $ Text $ "HI-SCORE: " ++ show (hscore world)
+        hscore_text  = Color white $ Translate (-105) (-290) $ Scale 0.16 0.16 $ Text $ "HI-SCORE: " ++ show (hscore world)
         score_text   = Color white $ Translate (-350) (-290) $ Scale 0.16 0.16 $ Text $ "SCORE: " ++ show (score world)
         welcome_text = Color green $ Translate (-105) 50 $ Scale 0.2 0.2 $ Text "FUNC INVADERS"
         start_text   = Color white $ Translate (-168) (-50) $ Scale 0.2 0.2 $ Text "PRESS SPACE TO START"
@@ -126,9 +134,9 @@ createWorld sprites gen scr hscr liv stt =
     where
         -- squids, crabs and octopus
         invaders =
-            [Component (sprites!!4) 4 (x*51.4)  227            alienV 0 24 24 0 False 30 | x <- [-5..5]] ++
-            [Component (sprites!!3) 3 (x*51.4) (227 - y*52.75) alienV 0 33 24 0 False 20 | x <- [-5..5], y <- [1..2]] ++
-            [Component (sprites!!2) 2 (x*51.4) (227 - y*52.75) alienV 0 36 24 0 False 10 | x <- [-5..5], y <- [3..4]]
+            [Component (sprites!!4) 4 (x*51.4)  227            (alienV 55) 0 24 24 0 False 30 | x <- [-5..5]] ++
+            [Component (sprites!!3) 3 (x*51.4) (227 - y*52.75) (alienV 55) 0 33 24 0 False 20 | x <- [-5..5], y <- [1..2]] ++
+            [Component (sprites!!2) 2 (x*51.4) (227 - y*52.75) (alienV 55) 0 36 24 0 False 10 | x <- [-5..5], y <- [3..4]]
         -- bunkers
         vaults = [Component (sprites!!7) 7 (x*69) (-169) 0 0 69 48 0 False 0 | x <- [-3, -1, 1, 3]]
 
@@ -145,11 +153,11 @@ fireCannon sprites t world
 -- spawn a new ray beam if not reloading and number of rays is lower than limit
 shootLaser :: [Picture] -> Float -> World a -> World a
 shootLaser sprites t world
-    | length (alienrays world) >= nRays || loadray world < rayTime  = world { loadray = t + loadray world }
-    | otherwise                                                     = world {
-                                                                              alienrays = ray : alienrays world
-                                                                            , loadray = 0
-                                                                            , rndGen = snd $ rndTuple 11 (rndGen world) }
+    | length (alienrays world) >= nRays (length $ aliens world) || loadray world < rayTime  = world { loadray = t + loadray world }
+    | otherwise                                                                             = world {
+                                                                                                      alienrays = ray : alienrays world
+                                                                                                     , loadray = 0
+                                                                                                     , rndGen = snd $ rndTuple 11 (rndGen world) }
     where
         ray = Component (sprites!!5) 5 x y 0 rayV 9 21 0 False 0
         x = px rndshooter
@@ -173,27 +181,33 @@ update sprites gen t world
                          $ updateTroop sprites t
                          $ updateRays t
                          $ updateBullets t
-                         $ updateDestroy
+                         $ updateDestroy sprites t
                          $ updateCollisions world
 
 -- used to update bullets, rays and aliens positions ans sprites
-updatePosition :: [Picture] -> Float -> Component a -> Component a
-updatePosition sprites t c@(Component sprt sid x y v1 v2 _ _ clk _ _)
-    | clk > marchTime = c { sprite = invsprt
-                          , spriteid = invid
-                          , px = x + t*v1
-                          , py = y + t*v2
-                          , clock = 0 }
-    | otherwise       = c { py = y + t*v2
-                          , clock = clk + t }
+updatePosition :: [Picture] -> Int -> Float -> Component a -> Component a
+updatePosition sprites naliens t c@(Component sprt sid x y v1 v2 _ _ clk _ _)
+    | clk > marchTime naliens = c { sprite = invsprt
+                                  , spriteid = invid
+                                  , px = x + t*v1
+                                  , py = y + t*v2
+                                  , vx = compvx
+                                  , clock = 0
+                                  , destroy = sid < 0
+                                  }
+    | otherwise               = c { py = y + t*v2
+                                  , clock = clk + t }
     where
+        compvx
+            | sid == 1 || sid == 5 = 0
+            | otherwise            = if v1 > 0 then alienV naliens else -(alienV naliens)
         invsprt
-            | null sprites = sprt
-            | otherwise    = sprites!!invid
+            | null sprites || sid < 0 = sprt
+            | otherwise               = sprites!!invid
         invid
             | sid >= 2 && sid <= 4  = sid + 6
             | sid >= 8 && sid <= 10 = sid - 6
-            | otherwise = sid
+            | otherwise             = sid
 
 -- update cannon position and fire bullets
 updateCannon :: [Picture] -> Float -> World a -> World a
@@ -208,7 +222,7 @@ updateCannon sprites t world = fireCannon sprites t world'
 
 -- update bullets positions
 updateBullets :: Float -> World a -> World a
-updateBullets t world = world {cannonbullets = filter (\x -> py x < 291) $ parMap rpar (updatePosition [] t) $ cannonbullets world}
+updateBullets t world = world {cannonbullets = filter (\x -> py x < 291) $ parMap rpar (updatePosition [] (length $ aliens world) t) $ cannonbullets world}
 
 -- update aliens positions and fire ray beams
 updateTroop :: [Picture] -> Float -> World a -> World a
@@ -223,7 +237,7 @@ updateTroop sprites t world
             | dir < 0 && xmin <= -357 = parMap rpar (\x -> x { py = py x-12, vx = -(vx x)}) moved
             | otherwise               = moved
         dir = vx (head troop)
-        moved = parMap rpar (updatePosition sprites t) troop
+        moved = parMap rpar (updatePosition sprites (length $ aliens world) t) troop
         troop = aliens world
         ymin = minimum $ parMap rpar py troop
         xmax = maximum posx
@@ -232,7 +246,7 @@ updateTroop sprites t world
 
 -- update ray beams positions
 updateRays :: Float -> World a -> World a
-updateRays t world = world {alienrays = filter (\x -> py x > -250) $ parMap rpar (updatePosition [] t) $ alienrays world}
+updateRays t world = world {alienrays = filter (\x -> py x > -250) $ parMap rpar (updatePosition [] (length $ aliens world) t) $ alienrays world}
 
 -- update UFO position
 updateUfo :: [Picture] -> Float -> World a -> World a
@@ -244,7 +258,7 @@ updateUfo sprites t world
     | otherwise                                     = world { ufo = (ufo world) { px = px (ufo world) + t*vx (ufo world) } }
     where
         park = world { ufo = (ufo world) { sprite = Blank, vx = 0 }, parked = 0 }
-        fly n = world { ufo = (ufo world) { sprite = sprites!!6, vx = n*ufoV } }
+        fly n = world { ufo = (ufo world) { sprite = sprites!!6, vx = n*ufoV, destroy = False, points = 100 } }
 
 -- check if two components collided
 collided :: Component a -> Component a -> Bool
@@ -272,7 +286,7 @@ checkCollisions (a:as) bs = ( a':as', bs'')
     where
         bs' = parMap rpar (\x -> if collided a x then x { destroy = True } else x) bs -- activate destroy flags
         a'
-            | hit > 0 = a { destroy = True }
+            | hit > 0   = a { destroy = True }
             | otherwise = a
         (as', bs'') = checkCollisions as bs'
         hit :: Int
@@ -297,11 +311,11 @@ updateCollisions world= world {
         (rays'', _)        = checkCollisions rays' (bunkers world)                -- rays touched bunkers
 
 -- clear all components flagged with destroy
-updateDestroy :: World a -> World a
-updateDestroy world = world {
+updateDestroy :: [Picture] -> Float -> World a -> World a
+updateDestroy sprites t world = world {
                               state = stt
                             , ufo = ufo'
-                            , aliens = aliens'
+                            , aliens = aliens''
                             , alienrays = clear (alienrays world)
                             , cannon = cannon'
                             , cannonbullets = clear (cannonbullets world)
@@ -310,16 +324,20 @@ updateDestroy world = world {
                             }
     where
         clear l = filter (not . destroy) l
-        aliens' = clear (aliens world)
+        -- change sprite, change sprite id
+        aliens' = parMap rpar (\x -> if destroy x && spriteid x /= -1 then x { sprite = sprites!!11, spriteid = -1, destroy = False } else x) (aliens world)
+        aliens'' = clear aliens'
         alienscore
             | stt == Defeat = 0
-            | otherwise     = sum $ parMap rpar (\x -> if destroy x then points x else 0) (aliens world)
+            | otherwise     = sum $ parMap rpar (\x -> if destroy x then points x else 0) aliens'
         ufoscore
             | destroy $ ufo world = points $ ufo world
             | otherwise           = 0
         ufo'
-            | destroy $ ufo world = (ufo world) { sprite = Blank, destroy = False }
-            | otherwise           = ufo world
+            | destroy (ufo world) && points (ufo world) > 0        = (ufo world) { sprite = sprites!!12, spriteid = -1, destroy = False, clock = clock (ufo world) + t , points = 0}
+            | spriteid (ufo world) < 0 && clock (ufo world) < 0.2  = (ufo world) { clock = clock (ufo world) + t }
+            | spriteid (ufo world) < 0 && clock (ufo world) >= 0.2 = (ufo world) { sprite = Blank, spriteid = 6, clock = 0}
+            | otherwise                                            = ufo world
         lives'
             | destroy $ cannon world = lives world - 1
             | otherwise              = lives world
@@ -327,6 +345,6 @@ updateDestroy world = world {
             | destroy (cannon world) && lives' == 0 = cannon world
             | otherwise                             = (cannon world) { destroy = False }
         stt
-            | lives' <= 0  = Defeat
-            | null aliens' = Victory
-            | otherwise    = Playing
+            | lives' <= 0   = Defeat
+            | null aliens'' = Victory
+            | otherwise     = Playing
