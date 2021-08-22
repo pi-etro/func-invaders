@@ -10,6 +10,39 @@
         <img src="https://img.shields.io/badge/License-GPLv3-CB0000.svg" /></a>
 </p>
 
+<br>
+
+<div align="center">
+    <a href="https://pi-etro.gitlab.io/func-invaders-web/">Play online now !</a>
+</div>
+
+## Controls
+
+To **move** the cannon use `A`/`D` or ⬅️/➡️ keys and to **fire** use `space` or `left click`.
+
+<p align="center">
+  <img width="350" src="https://raw.githubusercontent.com/pi-etro/func-invaders/main/img/gameplay.gif">
+</p>
+
+## Web version
+
+The [web version ](https://gitlab.com/pi-etro/func-invaders-web) uses the [shine](https://hackage.haskell.org/package/shine) library and can be played at [https://pi-etro.gitlab.io/func-invaders-web/](https://pi-etro.gitlab.io/func-invaders-web/).
+
+## Build
+
+To build use:
+
+```bash
+stack build
+```
+This project uses the [gloss](https://hackage.haskell.org/package/gloss) library, so it might be necessary to install some dependencies before stack builds the project successfully. Once the project is built, run the game with:
+
+```bash
+stack run
+```
+
 ## About
 
-Space Invaders game implemented with the functional programming language Haskell. Have fun!
+Func Invaders is a Space Invaders clone implemented with the Haskell functional programming language. This project was developed by me for the Programming Paradigms course at UFABC.
+
+Have fun!
