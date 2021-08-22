@@ -4,7 +4,7 @@
   </a>
 </p>
 <p align="center">
-    <a href="https://www.java.com" alt="Made with Java">
+    <a href="https://www.haskell.org/" alt="Made with Haskell">
         <img src="https://img.shields.io/badge/Made%20with-Haskell-5e5086" /></a>
     <a href="https://www.gnu.org/licenses/gpl-3.0.html" alt="GPLv3">
         <img src="https://img.shields.io/badge/License-GPLv3-CB0000.svg" /></a>
