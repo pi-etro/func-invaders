@@ -46,3 +46,6 @@ stack run
 Func Invaders is a Space Invaders clone implemented with the Haskell functional programming language. This project was developed by me for the Programming Paradigms course at UFABC.
 
 Have fun!
+
+## License
+[GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.html)
